@@ -132,7 +132,9 @@ function ensureGridRows(sheet, customer, vehicle, months, fyStart) {
       return;
     }
 
-    var values = [fyLabel(mo.y, mo.m, fyStart), customer, vehicle, monthLabel(mo.y, mo.m), mo.monthKey];
+    // A leading apostrophe keeps the labels as text. Without it Sheets turns 'Aug 2026' into a
+    // date and copies the format of a neighboring row, so labels drift between 'Aug' and 'August'.
+    var values = ["'" + fyLabel(mo.y, mo.m, fyStart), customer, vehicle, "'" + monthLabel(mo.y, mo.m), mo.monthKey];
     var rowNum;
     if (insertAt === -1) {
       sheet.appendRow(values);

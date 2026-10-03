@@ -38,11 +38,7 @@ function buildForm() {
 
   form.setTitle(cfg.FORM_TITLE)
     .setDescription('Pick the customer, then the vehicle, then the period. The daily value is applied to every day in the period.');
-  try {
-    form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
-  } catch (e) {
-    // already linked to this spreadsheet
-  }
+  linkFormToSheet(form, ss);
 
   // Page 1: customer choice. Choices get their navigation after the pages exist.
   var customerItem = form.addMultipleChoiceItem()
@@ -84,6 +80,23 @@ function buildForm() {
   setConfigValue(ss, 'FORM_URL', form.getPublishedUrl());
   say(ss, 'Form ready with ' + data.customers.length + ' customer page(s): ' + form.getPublishedUrl());
   return form;
+}
+
+/**
+ * Points the form's responses at this spreadsheet, once.
+ * Calling setDestination on a form that is already linked makes Google add a fresh
+ * "Form Responses" sheet and send new responses there, so it only runs when the link is missing.
+ */
+function linkFormToSheet(form, ss) {
+  var current = null;
+  try {
+    current = form.getDestinationId();
+  } catch (e) {
+    current = null; // no destination yet
+  }
+  if (current !== ss.getId()) {
+    form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
+  }
 }
 
 function openFormOrNull(id) {

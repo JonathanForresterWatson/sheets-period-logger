@@ -4,11 +4,7 @@ A Google Form that fills in a calendar grid in Google Sheets the way a careful p
 
 Built in Google Apps Script with no add-ons or libraries. The logic is tested offline with Node, so every rule below is checked before it ever touches a live spreadsheet.
 
-<!-- Add screenshots to docs/ and they will show here.
-![The form: pick a customer, then a vehicle, then a period](docs/form.png)
-![The Grid sheet after a few submissions](docs/grid.png)
-![The Log sheet](docs/log.png)
--->
+![The Grid sheet: one row per vehicle and month, one column per day, across a financial year end](docs/grid.png)
 
 ## What it does
 
@@ -20,6 +16,20 @@ Built in Google Apps Script with no add-ons or libraries. The logic is tested of
 - **Safe under load.** A script lock serializes submissions, and a form response that fires twice is processed once.
 - **Live totals.** `Summary` shows totals by customer and financial year, and by vehicle, using `QUERY` formulas that update as the grid changes. Each grid row carries its own `SUM`.
 - **Optional email.** Set `NOTIFY_EMAIL` and every submission sends a one-paragraph summary.
+
+## In the sheet
+
+Pick a customer, and the next page offers only that customer's vehicles:
+
+![The form on the Acme Logistics page, showing only Acme's vehicles](docs/form.png)
+
+Every submission lands in the `Log` with a status and a reason, including the ones that were rejected or only partly written:
+
+![The Log sheet with OK, PARTIAL and ERROR rows](docs/log.png)
+
+`Summary` totals update by themselves as the grid fills:
+
+![The Summary sheet with totals by customer, financial year and vehicle](docs/summary.png)
 
 ## How it fits together
 
@@ -80,6 +90,8 @@ Log statuses:
 ## Design notes
 
 - **One vehicle question per customer.** Google Forms cannot filter a dropdown by an earlier answer, so each customer gets its own page and its own `Vehicle (Customer)` question. Choice navigation sends the respondent to the right page, and the page breaks route everyone on to the shared period page. The trigger only sees the question that was answered.
+- **Labels stay text.** Month and financial-year labels are written with a leading apostrophe. Without it, Sheets turns `Aug 2026` into a date and copies the format of a neighboring row, so some rows end up reading `August 2026`.
+- **Linked once.** The form is pointed at the spreadsheet only when it is not linked already. Linking again makes Google add a new `Form Responses` sheet and send responses there.
 - **Dates as whole days.** Periods are expanded with UTC day arithmetic on `{y, m, d}` values, so month ends, leap days and daylight-saving changes cannot shift a day.
 - **Sorted inserts, not sorts.** Missing month rows are inserted at their sorted position (customer, vehicle, month) with an in-memory index that tracks the row shifts. The sheet stays ordered without a full sort on every submission, and each new row gets its `SUM` formula in R1C1 form so it survives later inserts.
 - **Idempotent by design.** The response ID is checked against the `Log` before any write, so a trigger that fires twice cannot double-book days.
@@ -91,7 +103,7 @@ Log statuses:
 node test/run.js
 ```
 
-`test/harness.js` loads the `.gs` files into a Node sandbox with small in-memory versions of `SpreadsheetApp`, `FormApp`, `ScriptApp`, `LockService`, `PropertiesService`, `Utilities`, `Session` and `MailApp`, using the same 1-based range semantics as the real services. No Google account, no network. The 29 tests cover sheet setup, config coercion, date and financial-year rules, form structure and navigation, grid writing across month and year ends, overlap handling in both modes, duplicate suppression, every rejection reason, row ordering, the trigger end to end, the demo setup and email notification.
+`test/harness.js` loads the `.gs` files into a Node sandbox with small in-memory versions of `SpreadsheetApp`, `FormApp`, `ScriptApp`, `LockService`, `PropertiesService`, `Utilities`, `Session` and `MailApp`, using the same 1-based range semantics as the real services. No Google account, no network. The harness also mimics three things the live services do that caught this project out in a real sheet: refusing to delete a page that is still a jump target, turning `Aug 2026` into a date, and adding a response sheet on every relink. The 31 tests cover sheet setup, config coercion, date and financial-year rules, form structure and navigation, rebuilding in place, grid writing across month and year ends, overlap handling in both modes, duplicate suppression, every rejection reason, row ordering, text labels, the trigger end to end, the demo setup and email notification.
 
 ## Adapting it
 

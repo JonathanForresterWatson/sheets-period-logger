@@ -1,7 +1,6 @@
-Screenshots go here. Suggested names, matching the comment in the main README:
+Screenshots used in the main README, taken from a live run of the demo:
 
-- form.png   the published form, on the customer page or a vehicle page
-- grid.png   the Grid sheet after the demo submissions
-- log.png    the Log sheet showing OK, PARTIAL and ERROR rows
-
-Crop out your Google account name and email before committing.
+- form.png     the form after picking a customer: only that customer's vehicles are offered
+- grid.png     the Grid sheet across a financial year end and a 92 day period
+- log.png      the Log sheet with OK, PARTIAL and ERROR rows
+- summary.png  the Summary sheet totals
