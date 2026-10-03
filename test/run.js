@@ -191,6 +191,18 @@ test('buildForm rebuilds the same form in place after a customer change', () => 
   same(pages, ['Acme Logistics', 'Birch Farms', 'Cedar Builders', 'Delta Dairy', 'Period']);
 });
 
+test('rebuilding clears navigation first, so Google will delete the old pages', () => {
+  const env = ready();
+  env.script.buildForm();
+  // The mock throws exactly as the live service does when a page that is still a jump
+  // target gets deleted. A rebuild must not hit that.
+  assert.doesNotThrow(() => env.script.buildForm());
+  const form = env.forms[env.script.getConfig(env.ss).FORM_ID];
+  const pages = form.getItems().filter(i => i.getType() === 'PAGE_BREAK');
+  assert.equal(pages.length, 4, 'old pages gone, new ones in place');
+  assert.equal(pages[1].goToPage, pages[3], 'navigation rebuilt');
+});
+
 test('buildForm refuses to run without customers', () => {
   const env = createEnvironment();
   env.script.setupSheets();

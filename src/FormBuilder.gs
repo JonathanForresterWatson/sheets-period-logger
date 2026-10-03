@@ -94,10 +94,25 @@ function openFormOrNull(id) {
   }
 }
 
+/**
+ * Removes every question from the form so it can be rebuilt in place.
+ * Google refuses to delete a page that is still a navigation target ("Invalid data updating
+ * form"), so all choice navigation and page jumps are cleared first, then the items go.
+ */
 function clearFormItems(form) {
-  var items = form.getItems();
-  for (var i = items.length - 1; i >= 0; i--) {
-    form.deleteItem(items[i]);
+  form.getItems().forEach(function (item) {
+    var type = item.getType();
+    if (type === FormApp.ItemType.MULTIPLE_CHOICE) {
+      var choiceItem = item.asMultipleChoiceItem();
+      choiceItem.setChoices(choiceItem.getChoices().map(function (c) {
+        return choiceItem.createChoice(c.getValue());
+      }));
+    } else if (type === FormApp.ItemType.PAGE_BREAK) {
+      item.asPageBreakItem().setGoToPage(FormApp.PageNavigationType.CONTINUE);
+    }
+  });
+  while (form.getItems().length > 0) {
+    form.deleteItem(0);
   }
 }
 

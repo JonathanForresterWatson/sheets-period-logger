@@ -186,8 +186,14 @@ class MockItem {
   setRequired(b) { this.required = b; return this; }
   getType() { return this.type; }
   getIndex() { return this.form.items.indexOf(this); }
-  createChoice(value, navigation) { return { value, navigation: navigation || null }; }
+  createChoice(value, navigation) {
+    return { value, navigation: navigation || null, getValue: () => value, getGotoPage: () => navigation || null };
+  }
   setChoices(choices) { this.choices = choices; return this; }
+  getChoices() { return (this.choices || []).slice(); }
+  asMultipleChoiceItem() { return this; }
+  asPageBreakItem() { return this; }
+  asListItem() { return this; }
   setChoiceValues(values) { this.choiceValues = values.slice(); return this; }
   setGoToPage(page) { this.goToPage = page; return this; }
   setValidation(v) { this.validation = v; return this; }
@@ -210,6 +216,15 @@ class MockForm {
   deleteItem(itemOrIndex) {
     const idx = typeof itemOrIndex === 'number' ? itemOrIndex : this.items.indexOf(itemOrIndex);
     if (idx < 0) throw new Error('Item not found');
+    const victim = this.items[idx];
+    // The real service refuses to delete a page that is still a navigation target.
+    if (victim.type === 'PAGE_BREAK') {
+      const referenced = this.items.some(other => other !== victim && (
+        other.goToPage === victim ||
+        (other.choices || []).some(c => c.navigation === victim)
+      ));
+      if (referenced) throw new Error('Exception: Invalid data updating form.');
+    }
     this.items.splice(idx, 1);
   }
   getPublishedUrl() { return `https://docs.google.com/forms/d/e/${this.id}/viewform`; }
@@ -260,6 +275,8 @@ function createEnvironment() {
 
   const FormApp = {
     DestinationType: { SPREADSHEET: 'SPREADSHEET' },
+    ItemType: { MULTIPLE_CHOICE: 'MULTIPLE_CHOICE', LIST: 'LIST', PAGE_BREAK: 'PAGE_BREAK', DATE: 'DATE', TEXT: 'TEXT', PARAGRAPH_TEXT: 'PARAGRAPH_TEXT' },
+    PageNavigationType: { CONTINUE: 'CONTINUE', GO_TO_PAGE: 'GO_TO_PAGE', RESTART: 'RESTART', SUBMIT: 'SUBMIT' },
     create: title => {
       const form = new MockForm(`FORM-${++formCounter}`, title);
       forms[form.id] = form;
